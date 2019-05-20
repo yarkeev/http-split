@@ -1,0 +1,12 @@
+.idea
+.awcache
+.DS_Store
+/node_modules
+/docs
+/coverage
+/dist
+/package-lock.json
+/tmp
+/tslint.json
+/yarn.lock
+/http-split.js
