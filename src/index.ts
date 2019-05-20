@@ -5,6 +5,7 @@ let app: App;
 try {
 	app = new App();
 } catch (err) {
+	console.error(err);
 	app.destroy();
 }
 

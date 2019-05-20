@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as commander from 'commander';
 
 import { ServiceManager } from './ServiceManager';
+import { Api } from './Api';
 
 import { IServiceConfig } from './interfaces';
 
@@ -16,6 +17,7 @@ export interface IAppOptions {
 
 export interface IConfig {
 	auditTimeout: number;
+	apiPort: number;
 	services: IServiceConfig[];
 }
 
@@ -25,6 +27,7 @@ export class App {
 	protected pkg: IPackage;
 	protected config: IConfig;
 	protected serviceManager: ServiceManager;
+	protected api: Api;
 
 	static log(...args: any[]) {
 		console.log.apply(console, [(new Date()).toString(), ':'].concat(Array.prototype.slice.call(arguments)));
@@ -50,7 +53,11 @@ export class App {
 	}
 
 	parsePkg() {
-		this.pkg = JSON.parse(fs.readFileSync('./package.json').toString());
+		this.pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json')).toString());
+	}
+
+	getServiceManager() {
+		return this.serviceManager;
 	}
 
 	async init() {
@@ -60,6 +67,10 @@ export class App {
 			this.serviceManager = new ServiceManager(this, {
 				auditTimeout: this.config.auditTimeout,
 				services: this.config.services,
+			});
+
+			this.api = new Api(this, {
+				port: this.config.apiPort,
 			});
 		} catch (err) {
 			this.log(`Failed init: ${err.toString()}`);
@@ -80,6 +91,7 @@ export class App {
 
 			return {
 				auditTimeout: config.auditTimeout || 60 * 1000,
+				apiPort: config.apiPort || 13000,
 				...config,
 			}
 		} catch (err) {
@@ -87,24 +99,6 @@ export class App {
 
 			throw err;
 		}
-
-		// return new Promise((resolve, reject) => {
-		// 	// fs.readFile(this.options.config, 'utf-8', (err, content) => {
-		// 	// 	if (err) {
-		// 	// 		this.log(`Failed read config file: ${err.toString()}`);
-		// 	//
-		// 	// 		reject(err);
-		// 	// 	} else {
-		// 	// 		try {
-		// 	// 			resolve(JSON.parse(content));
-		// 	// 		} catch (err) {
-		// 	// 			this.log(`Failed parse config file: ${err.toString()}`);
-		// 	//
-		// 	// 			reject(err);
-		// 	// 		}
-		// 	// 	}
-		// 	// });
-		// });
 	}
 
 }

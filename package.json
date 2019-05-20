@@ -1,12 +1,16 @@
 {
 	"name": "http-split",
-	"version": "1.0.0",
+	"version": "1.0.4",
 	"description": "split http services",
 	"main": "dist/index.js",
 	"scripts": {
 		"ts": "./node_modules/.bin/tsc",
 		"build": "rm -rf ./dist && npm run ts",
-		"dev": "./node_modules/.bin/tsc -w & supervisor -- ./bin/run --workers=1"
+		"dev": "./node_modules/.bin/tsc -w & supervisor -- ./bin/run --workers=1",
+		"prepublish": "npm run build && bump"
+	},
+	"bin": {
+		"http-split": "./bin/run"
 	},
 	"author": "",
 	"license": "MIT",
@@ -15,7 +19,8 @@
 		"@types/http-proxy": "^1.17.0",
 		"@types/node": "^12.0.2",
 		"supervisor": "^0.12.0",
-		"typescript": "^3.4.5"
+		"typescript": "^3.4.5",
+		"version-bump-prompt": "^5.0.1"
 	},
 	"dependencies": {
 		"commander": "^2.20.0",

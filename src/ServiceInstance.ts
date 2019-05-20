@@ -49,12 +49,6 @@ export class ServiceInstance {
 
 		this.process.on('close', (code) => {
 			this.app.log(`Process of service ${this.options.serviceName} with id ${this.getId()} exit with code ${code}`);
-
-			// if (code === 0) {
-			// 	resolve();
-			// } else {
-			// 	reject();
-			// }
 		});
 	}
 
@@ -84,11 +78,5 @@ export class ServiceInstance {
 	protected logFromInstance(message: string) {
 		console.log(`${this.getLogPrefix()}: ${message}`);
 	}
-
-	// protected getArgs(): string[] {
-	// 	const exec = this.options.exec;
-	//
-	// 	const args = exec.extra.split(' ')
-	// }
 
 }

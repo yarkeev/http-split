@@ -39,4 +39,14 @@ export class ServiceManager {
 
 		this.services.forEach((service: Service) => service.audit());
 	}
+
+	restartInstance(serviceName: string, instanceId: string) {
+		const service = this.services.find((service: Service) => service.getName() === serviceName);
+
+		if (service) {
+			service.restartById(instanceId);
+		} else {
+			this.app.log(`Service "${serviceName}" not found`);
+		}
+	}
 }

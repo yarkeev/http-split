@@ -35,6 +35,10 @@ export class Service {
 		this.instances.forEach((instance: ServiceInstance) => this.destroyInstanceById(instance.getId()));
 	}
 
+	getName() {
+		return this.options.name;
+	}
+
 	audit() {
 		fs.readdir(this.options.dir, (err, list) => {
 			this.instances.forEach((instance: ServiceInstance) => {
@@ -51,6 +55,11 @@ export class Service {
 				}
 			})
 		});
+	}
+
+	restartById(id: string) {
+		this.destroyInstanceById(id);
+		this.initInstance(id);
 	}
 
 	destroyInstanceById(id: string) {
@@ -82,19 +91,24 @@ export class Service {
 
 	protected async initInstance(dir: string) {
 		const port = await this.getPort();
+		const cwd = path.resolve(this.options.dir, dir);
 
-		const instance = new ServiceInstance(this.app, {
-			serviceName: this.options.name,
-			id: dir,
-			port,
-			cwd: path.resolve(this.options.dir, dir),
-			exec: this.options.exec,
-			logPrefixFormat: this.options.logPrefixFormat,
-		});
+		if (!fs.existsSync(cwd)) {
+			this.app.log(`Init instance failed. Directory "${cwd}" not found`);
+		} else {
+			const instance = new ServiceInstance(this.app, {
+				serviceName: this.options.name,
+				id: dir,
+				port,
+				cwd,
+				exec: this.options.exec,
+				logPrefixFormat: this.options.logPrefixFormat,
+			});
 
-		instance.run();
+			instance.run();
 
-		this.instances.push(instance);
+			this.instances.push(instance);
+		}
 	}
 
 	protected startHttpWrapper() {
