@@ -1,3 +1,5 @@
 #!/usr/bin/env node
 
-require('../dist/index');
+const { run } = require('../dist/index');
+
+run();
