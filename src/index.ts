@@ -1,5 +1,7 @@
 import { App } from './App';
 
+export { App };
+
 export const run = () => {
 	let app: App;
 
@@ -22,4 +24,4 @@ export const run = () => {
 			app.destroy();
 			process.exit(1);
 		});
-}
+};
