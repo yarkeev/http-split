@@ -45,7 +45,11 @@ export class App {
 			...options,
 		};
 
-		this.init();
+		if (this.options.config) {
+			this.init();
+		} else {
+			this.log(`--config option is required`);
+		}
 	}
 
 	destroy() {
