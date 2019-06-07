@@ -53,7 +53,11 @@ export class App {
 	}
 
 	destroy() {
+		this.log('Start destroy App');
+
 		this.serviceManager.destroy();
+
+		this.log('Finish destroy App');
 	}
 
 	parsePkg() {

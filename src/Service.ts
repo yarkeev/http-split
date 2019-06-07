@@ -32,7 +32,15 @@ export class Service {
 	}
 
 	destroy() {
-		this.instances.forEach((instance: ServiceInstance) => this.destroyInstanceById(instance.getId()));
+		this.app.log(`Start destroy service "${this.getName()}"`);
+
+		for (let i = 0; i < this.instances.length; i++) {
+			this.destroyInstanceById(this.instances[i].getId(), true);
+		}
+
+		this.instances = [];
+
+		this.app.log(`Finish destroy service "${this.getName()}"`);
 	}
 
 	getName() {
@@ -62,15 +70,17 @@ export class Service {
 		this.initInstance(id);
 	}
 
-	destroyInstanceById(id: string) {
-		this.app.log(`Find instance with id "${id}" in service "${this.options.name}"`);
+	destroyInstanceById(id: string, noSplice?: boolean) {
+		this.app.log(`Destroy instance with id "${id}" in service "${this.options.name}"`);
 
 		const { index, instance } = this.getInstanceBydId(id);
 
 		if (instance) {
 			instance.destroy();
 
-			this.instances.splice(index, 1);
+			if (!noSplice) {
+				this.instances.splice(index, 1);
+			}
 		}
 	}
 

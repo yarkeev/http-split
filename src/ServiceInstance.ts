@@ -53,7 +53,7 @@ export class ServiceInstance {
 	}
 
 	destroy() {
-		this.app.log(`Destroy instance with id ${this.getId()} in service ${this.options.serviceName}`);
+		this.app.log(`Destroy instance with id "${this.getId()}" in service ${this.options.serviceName}`);
 
 		this.process.kill();
 	}

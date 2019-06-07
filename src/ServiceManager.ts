@@ -30,8 +30,15 @@ export class ServiceManager {
 	}
 
 	destroy() {
-		this.services.forEach((service: Service) => service.destroy());
+		this.app.log('Start destroy ServiceManager');
+
+		for (let i = 0; i < this.services.length; i++) {
+			this.services[i].destroy();
+		}
+
 		this.services = [];
+
+		this.app.log('Finish destroy ServiceManager');
 	}
 
 	audit() {
