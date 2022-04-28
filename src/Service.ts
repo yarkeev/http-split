@@ -49,13 +49,15 @@ export class Service {
 
 	audit() {
 		fs.readdir(this.options.dir, (err, list) => {
+			const dirs = list.filter((item) => !this.options.exclude?.includes(item));
+
 			this.instances.forEach((instance: ServiceInstance) => {
-				if (list.indexOf(instance.getId()) === -1) {
+				if (dirs.indexOf(instance.getId()) === -1) {
 					this.destroyInstanceById(instance.getId());
 				}
 			});
 
-			list.forEach((dir: string) => {
+			dirs.forEach((dir: string) => {
 				const { instance } = this.getInstanceBydId(dir);
 
 				if (!instance) {

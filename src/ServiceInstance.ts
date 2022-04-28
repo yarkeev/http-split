@@ -24,13 +24,18 @@ export class ServiceInstance {
 		this.options = options;
 	}
 
-	run() {
+	async run() {
 		const exec = this.options.exec;
 		const args = [
 			...exec.extra.split(' '),
 			exec.extraPort,
 			String(this.options.port),
 		];
+		const isSupportedInstanceId = await this.isSupportedArgument('--instance-id');
+
+		if (isSupportedInstanceId) {
+			args.push(`--instance-id=${this.options.id}`);
+		}
 
 		App.log(`Run instance of service ${this.options.serviceName} on port ${this.options.port} with args ${JSON.stringify(args)}`);
 
@@ -49,6 +54,22 @@ export class ServiceInstance {
 
 		this.process.on('close', (code) => {
 			this.app.log(`Process of service ${this.options.serviceName} with id ${this.getId()} exit with code ${code}`);
+		});
+	}
+
+	protected async isSupportedArgument(arg: string) {
+		return new Promise((resolve) => {
+			const { exec, cwd } = this.options;
+			const process = spawn(
+				exec.start,
+				['-h'],
+				{ cwd },
+			);
+			let output = '';
+
+			process.stdout.on('data', (data) => output += data.toString());
+
+			process.on('close', () => resolve(output.includes(arg)));
 		});
 	}
 

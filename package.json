@@ -1,13 +1,15 @@
 {
 	"name": "http-split",
-	"version": "1.0.8",
+	"version": "1.0.10",
 	"description": "split http services",
 	"main": "dist/index.js",
 	"scripts": {
-		"ts": "./node_modules/.bin/tsc",
-		"build": "rm -rf ./dist && npm run ts",
-		"dev": "./node_modules/.bin/tsc -w & supervisor -- ./bin/run --workers=1",
-		"prepublish": "npm run build && bump"
+		"clean": "rm -rf ./dist",
+		"ts": "tsc",
+		"build": "npm run clean && npm run ts",
+		"nodemon": "nodemon",
+		"dev": "./bin/start.sh",
+		"prepublishOnly": "npm run build && bump"
 	},
 	"bin": {
 		"http-split": "./bin/run"
@@ -18,8 +20,8 @@
 		"@types/express": "^4.16.1",
 		"@types/http-proxy": "^1.17.0",
 		"@types/node": "^12.0.2",
-		"supervisor": "^0.12.0",
-		"typescript": "^3.4.5",
+		"nodemon": "^2.0.15",
+		"typescript": "^4.6.3",
 		"version-bump-prompt": "^5.0.1"
 	},
 	"dependencies": {

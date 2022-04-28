@@ -10,6 +10,7 @@ export interface IServiceConfig {
 	name: string;
 	port: number;
 	dir: string;
+	exclude?: string[];
 	exec: IServiceExecParams;
 	startPort: number;
 	endPort: number;

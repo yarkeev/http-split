@@ -1,0 +1,9 @@
+{
+	"watch": [
+		"src"
+	],
+	"ext": "ts",
+	"ignore": [],
+	"delay": "1000",
+	"exec": "./bin/run --config=./http-split.js"
+}
