@@ -76,7 +76,15 @@ export class ServiceInstance {
 	destroy() {
 		this.app.log(`Destroy instance with id "${this.getId()}" in service ${this.options.serviceName}`);
 
-		this.process.kill();
+		if (this.process) {
+			try {
+				this.process.kill();
+			} catch (err) {
+				this.app.log(`Failed kill process`);
+			}
+		} else {
+			this.app.log(`Process does not exist`);
+		}
 	}
 
 	getId() {
