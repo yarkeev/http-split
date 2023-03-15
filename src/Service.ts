@@ -69,7 +69,7 @@ export class Service {
 			});
 
 			dirs.forEach((dir: string) => {
-				const { instance } = this.getInstanceBydId(dir);
+				const { instance } = this.getInstanceById(dir);
 
 				if (!instance) {
 					this.initInstance(dir);
@@ -86,7 +86,7 @@ export class Service {
 	destroyInstanceById(id: string, noSplice?: boolean) {
 		this.app.log(`Destroy instance with id "${id}" in service "${this.options.name}"`);
 
-		const { index, instance } = this.getInstanceBydId(id);
+		const { index, instance } = this.getInstanceById(id);
 
 		if (instance) {
 			const port = instance.getPort();
@@ -102,7 +102,7 @@ export class Service {
 		}
 	}
 
-	getInstanceBydId(id: string) {
+	getInstanceById(id: string) {
 		this.app.log(`Find instance with id "${id}" in service "${this.options.name}"`);
 
 		const instance = this.instances.find((instance: ServiceInstance) => instance.getId() === id);
@@ -120,7 +120,7 @@ export class Service {
 	protected getInstanceByReq(req: express.Request) {
 		const instanceId = this.options.getInstanceIdByReq(req);
 
-		return this.getInstanceBydId(instanceId);
+		return this.getInstanceById(instanceId);
 	}
 
 	protected async initInstance(dir: string) {
