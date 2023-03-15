@@ -2,6 +2,9 @@ import { spawn, ChildProcess } from 'child_process';
 
 import { App } from './App';
 
+import { portIsBusy } from './utils/portIsBusy';
+import { delay } from './utils/delay';
+
 import { IServiceExecParams } from './interfaces';
 
 export interface IServiceInstanceOptions {
@@ -18,6 +21,10 @@ export class ServiceInstance {
 	protected app: App;
 	protected options: IServiceInstanceOptions;
 	protected process: ChildProcess;
+	public isRunning = false;
+	public isRunned = false;
+	public promiseRun: Promise<void>;
+	protected waitCheckIndex = 0;
 
 	constructor(app: App, options: IServiceInstanceOptions) {
 		this.app = app;
@@ -25,36 +32,68 @@ export class ServiceInstance {
 	}
 
 	async run() {
-		const exec = this.options.exec;
-		const args = [
-			...exec.extra.split(' '),
-			exec.extraPort,
-			String(this.options.port),
-		];
-		const isSupportedInstanceId = await this.isSupportedArgument('--instance-id');
+		this.isRunning = true;
 
-		if (isSupportedInstanceId) {
-			args.push(`--instance-id=${this.options.id}`);
-		}
+		this.promiseRun = new Promise(async (resolve) => {
+			const exec = this.options.exec;
+			const args = [
+				...exec.extra.split(' '),
+				exec.extraPort,
+				String(this.options.port),
+			];
+			const isSupportedInstanceId = await this.isSupportedArgument('--instance-id');
 
-		App.log(`Run instance of service ${this.options.serviceName} on port ${this.options.port} with args ${JSON.stringify(args)}`);
-
-		this.process = spawn(
-			exec.start,
-			args,
-			{
-				cwd: this.options.cwd,
+			if (isSupportedInstanceId) {
+				args.push(`--instance-id=${this.options.id}`);
 			}
-		);
 
-		this.process.stdout.on('data', (data) => this.logFromInstance(data.toString()));
-		this.process.stdout.on('error', (data) => this.logFromInstance(data.toString()));
-		this.process.stderr.on('data', (data) => this.logFromInstance(data.toString()));
-		this.process.stderr.on('error', (data) => this.logFromInstance(data.toString()));
+			App.log(`Run instance of service ${this.options.serviceName} on port ${this.options.port} with args ${JSON.stringify(args)}`);
 
-		this.process.on('close', (code) => {
-			this.app.log(`Process of service ${this.options.serviceName} with id ${this.getId()} exit with code ${code}`);
+			this.process = spawn(
+				exec.start,
+				args,
+				{
+					cwd: this.options.cwd,
+				}
+			);
+
+			this.process.stdout.on('data', (data) => this.logFromInstance(data.toString()));
+			this.process.stdout.on('error', (data) => this.logFromInstance(data.toString()));
+			this.process.stderr.on('data', (data) => this.logFromInstance(data.toString()));
+			this.process.stderr.on('error', (data) => this.logFromInstance(data.toString()));
+
+			this.process.on('close', (code) => {
+				this.app.log(`Process of service ${this.options.serviceName} with id ${this.getId()} exit with code ${code}`);
+			});
+
+			await this.waitRun();
+
+			this.isRunning = false;
+			this.isRunned = true;
+
+			resolve()
 		});
+
+		return this.promiseRun;
+	}
+
+	protected async waitRun() {
+		try {
+			const isBusy = await portIsBusy(this.options.port);
+
+			if (!isBusy) {
+				this.waitCheckIndex++;
+
+				if (this.waitCheckIndex < 10) {
+					await delay(1000);
+					await this.waitRun();
+				} else {
+					throw new Error('Check run instance limit exceeded');
+				}
+			}
+		} catch (err) {
+			this.app.log(`Failed check run state instance "${this.options.id}"`, err);
+		}
 	}
 
 	protected async isSupportedArgument(arg: string) {

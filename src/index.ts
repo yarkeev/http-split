@@ -8,7 +8,7 @@ export const run = () => {
 	try {
 		app = new App();
 	} catch (err) {
-		console.error(err);
+		console.error('ERROR: ', err, err.stack);
 		app.destroy();
 	}
 
@@ -20,7 +20,7 @@ export const run = () => {
 
 	process
 		.on('uncaughtException', (err: Error) => {
-			console.error(err, 'Uncaught Exception thrown');
+			console.error(err, err.stack, 'Uncaught Exception thrown');
 			app.destroy();
 			process.exit(1);
 		});

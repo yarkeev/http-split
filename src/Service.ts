@@ -5,7 +5,6 @@ import * as httpProxy from 'http-proxy';
 
 import { App } from './App';
 import { ServiceInstance } from './ServiceInstance';
-import { portIsBusy } from './utils/portIsBusy';
 
 import { IServiceConfig } from './interfaces';
 
@@ -17,10 +16,22 @@ export class Service {
 	protected options: IServiceOptions;
 	protected instances: ServiceInstance[] = [];
 	protected server: express.Application;
+	protected usedPorts: Record<number, boolean>;
 
 	constructor(app: App, options: IServiceOptions) {
 		this.app = app;
 		this.options = options;
+
+		this.usedPorts = new Array(this.options.endPort - this.options.startPort)
+			.fill(null)
+			.reduce(
+				(ports, item, key) => {
+					ports[this.options.startPort + key] = false;
+
+					return ports;
+				},
+				{},
+			);
 	}
 
 	init() {
@@ -78,7 +89,12 @@ export class Service {
 		const { index, instance } = this.getInstanceBydId(id);
 
 		if (instance) {
+			const port = instance.getPort();
+
 			instance.destroy();
+
+			this.app.log(`Port ${port} is now free`);
+			this.usedPorts[port] = false;
 
 			if (!noSplice) {
 				this.instances.splice(index, 1);
@@ -101,25 +117,56 @@ export class Service {
 		}
 	}
 
+	protected getInstanceByReq(req: express.Request) {
+		const instanceId = this.options.getInstanceIdByReq(req);
+
+		return this.getInstanceBydId(instanceId);
+	}
+
 	protected async initInstance(dir: string) {
-		const port = await this.getPort();
+		const port = this.getAvailablePort();
 		const cwd = path.resolve(this.options.dir, dir);
 
 		if (!fs.existsSync(cwd)) {
 			this.app.log(`Init instance failed. Directory "${cwd}" not found`);
 		} else {
-			const instance = new ServiceInstance(this.app, {
-				serviceName: this.options.name,
-				id: dir,
-				port,
-				cwd,
-				exec: this.options.exec,
-				logPrefixFormat: this.options.logPrefixFormat,
-			});
+			this.usedPorts[port] = true;
 
-			instance.run();
+			this.app.log(`Use port ${port} for instance ${dir}`);
+
+			const instance = new ServiceInstance(
+				this.app,
+				{
+					serviceName: this.options.name,
+					id: dir,
+					port,
+					cwd,
+					exec: this.options.exec,
+					logPrefixFormat: this.options.logPrefixFormat,
+				},
+			);
 
 			this.instances.push(instance);
+		}
+	}
+
+	protected proxyToInstance(instance: ServiceInstance, req: express.Request, res: express.Response) {
+		try {
+			const proxy = httpProxy.createProxyServer();
+
+			proxy.web(req, res, { target: `http://127.0.0.1:${instance.getPort()}` });
+
+			proxy.on('error', (err: Error) => {
+				this.app.log(`Error proxy: `, err && err.toString());
+
+				this.proxyErrorHandler(res, err);
+
+				proxy.close();
+			});
+
+			proxy.on('close', () => this.app.log(`Proxy to port ${instance.getPort()} closed`));
+		} catch (err) {
+			this.proxyErrorHandler(res, err);
 		}
 	}
 
@@ -129,60 +176,36 @@ export class Service {
 		this.server.listen(this.options.port, '0.0.0.0', () => {
 			this.app.log(`Service ${this.options.name} http server listening on http://0.0.0.0:${this.options.port}`);
 
-			this.server.all('*', (req: express.Request, res: express.Response) => {
-				const port = this.getProxyPort(req);
+			this.server.all('*', async (req: express.Request, res: express.Response) => {
+				const instanceId = this.options.getInstanceIdByReq(req);
+				const { instance } = this.getInstanceByReq(req);
 
-				if (port) {
-					this.app.log(`Instance found on port ${port}`);
+				if (instance) {
+					this.app.log(`Instance found on port ${instance.getPort()}`);
 
-					try {
-						const proxy = httpProxy.createProxyServer();
-
-						proxy.web(req, res, { target: `http://127.0.0.1:${port}` });
-
-						proxy.on('error', (err: Error) => {
-							this.app.log(`Error proxy: `, err && err.toString());
-
-							this.proxyErrorHandler(res, err);
-
-							proxy.close();
-						});
-
-						proxy.on('close', () => this.app.log(`Proxy to port ${port} closed`));
-					} catch (err) {
-						this.proxyErrorHandler(res, err);
+					if (instance.isRunned) {
+						this.proxyToInstance(instance, req, res);
+					} else if (instance.isRunning) {
+						await instance.promiseRun;
+						this.proxyToInstance(instance, req, res);
+					} else {
+						await instance.run();
+						this.proxyToInstance(instance, req, res);
 					}
 				} else {
-					this.app.log(`Proxy port is not found`);
+					this.app.log(`Instance "${instanceId}" not found`);
 
 					res.status(404);
-					res.send('<h1>Instance not found</h1>');
+					res.send(`<h1>Instance "${instanceId}" not found</h1>`);
 				}
 			});
 		});
 	}
 
-	protected getProxyPort(req: express.Request): number {
-		const instanceId = this.options.getInstanceIdByReq(req);
-		const instance = this.instances.find((instance: ServiceInstance) => instance.getId() === instanceId);
+	protected getAvailablePort() {
+		const port = Number(Object.keys(this.usedPorts).find((port) => !this.usedPorts[Number(port)]));
 
-		return instance ? instance.getPort() : null;
-	}
-
-	protected async getPort() {
-		for (let i = this.options.startPort; i < this.options.endPort; i++) {
-			try {
-				const isBusy = await portIsBusy(i);
-
-				if (!isBusy) {
-					return i;
-				}
-			} catch (err) {
-				this.app.log(`Check next port`);
-			}
-		}
-
-		return null;
+		return isNaN(port) ? null : port;
 	}
 
 	protected proxyErrorHandler(res: express.Response, err: Error) {

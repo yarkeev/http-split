@@ -3,7 +3,7 @@ import * as net from 'net';
 import { App } from '../App';
 
 export const portIsBusy = async (port: number): Promise<boolean> => {
-	return new Promise<boolean>((resolve, reject) => {
+	return new Promise<boolean>((resolve) => {
 		App.log(`Check port ${port}`);
 
 		const server = net.createServer();
@@ -15,7 +15,7 @@ export const portIsBusy = async (port: number): Promise<boolean> => {
 				App.log(`Port ${port} error ${err.toString()}`);
 			}
 
-			reject(true);
+			resolve(true);
 		});
 
 		server.once('listening', function () {
