@@ -40,13 +40,8 @@ export class ServiceInstance {
 				...exec.extra.split(' '),
 				exec.extraPort,
 				String(this.options.port),
+				`--instance-id=${this.options.id}`,
 			];
-			const isSupportedInstanceId = await this.isSupportedArgument('--instance-id');
-
-			if (isSupportedInstanceId) {
-				args.push(`--instance-id=${this.options.id}`);
-			}
-
 			App.log(`Run instance of service ${this.options.serviceName} on port ${this.options.port} with args ${JSON.stringify(args)}`);
 
 			this.process = spawn(
